@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
   std::fill(message1.begin(), message1.end(), 'A');
   std::fill(message2.begin(), message2.end(), 'B');
 
-  muduo::InetAddress listenAddr(9981);
+  muduo::InetAddress listenAddr(6000);
   muduo::EventLoop loop;
 
   muduo::TcpServer server(&loop, listenAddr);
