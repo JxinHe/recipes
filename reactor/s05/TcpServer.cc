@@ -18,53 +18,47 @@
 
 using namespace muduo;
 
-TcpServer::TcpServer(EventLoop* loop, const InetAddress& listenAddr)
-  : loop_(CHECK_NOTNULL(loop)),
-    name_(listenAddr.toHostPort()),
-    acceptor_(new Acceptor(loop, listenAddr)),
-    started_(false),
-    nextConnId_(1)
+TcpServer::TcpServer(EventLoop* loop,const InetAddress& listenAddr)
+:loop_(CHECK_NOTNULL(loop)),
+name_(listenAddr.toHostPort()),
+acceptor_(new Acceptor(loop,listenAddr)),
+started_(false),
+nextConnId_(1)
 {
-  acceptor_->setNewConnectionCallback(
-      boost::bind(&TcpServer::newConnection, this, _1, _2));
+ acceptor_->setNewConnectionCallback(boost::bind(&TcpServer::newConnection,this,_1,_2)); 
 }
 
 TcpServer::~TcpServer()
 {
+  
 }
 
-void TcpServer::start()
+void Tcpserver::start()
 {
-  if (!started_)
+ if(!started_)
+ {
+  started_=true; 
+ }
+  if(!acceptor_->listening())
   {
-    started_ = true;
+   loop_->runInLoop(boost::bind(&Acceptor::listen,get_pointer(acceptor_))); 
   }
-
-  if (!acceptor_->listenning())
+  
+  void TcpServer::newConnection(int sockfd,const InetAddress& peerAddr)
   {
-    loop_->runInLoop(
-        boost::bind(&Acceptor::listen, get_pointer(acceptor_)));
+    loop_->assertInLoopThread();
+    char buf[32];
+    snprintf(buf,sizeof buf,"#%d",nextConnId_);
+    ++nextConnId_;
+    std::string connName=name_+buf;
+    
+    LOG_INFO<<"TcpServer::newConnection{}<<name_<<"]-new connection["<<connName<<"]from"<<peerAddr.toHostPort();
+    InetAddress localAddr(socket::getLocalAddr(sockfd));
+    TcpConnectionPtr conn(new TcpConnection(loop_,connName,sockfd,localAddr,peerAddr));
+    connections_[connName]=conn;
+    conn->setConnectionCallback(connectionCallback_);
+    conn->setMessageCallback(meesageCallback);
+    conn->cnonectionEstablished();
+  }
   }
 }
-
-void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
-{
-  loop_->assertInLoopThread();
-  char buf[32];
-  snprintf(buf, sizeof buf, "#%d", nextConnId_);
-  ++nextConnId_;
-  std::string connName = name_ + buf;
-
-  LOG_INFO << "TcpServer::newConnection [" << name_
-           << "] - new connection [" << connName
-           << "] from " << peerAddr.toHostPort();
-  InetAddress localAddr(sockets::getLocalAddr(sockfd));
-  // FIXME poll with zero timeout to double confirm the new connection
-  TcpConnectionPtr conn(
-      new TcpConnection(loop_, connName, sockfd, localAddr, peerAddr));
-  connections_[connName] = conn;
-  conn->setConnectionCallback(connectionCallback_);
-  conn->setMessageCallback(messageCallback_);
-  conn->connectEstablished();
-}
-
