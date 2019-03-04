@@ -11,34 +11,35 @@
 #include "thread/Mutex.h"
 #include "Callbacks.h"
 #include "Channel.h"
-
 namespace muduo
 {
-  class EventLoop;
+ class EventLoop;
   class Timer;
   class TimerId;
- 
- class TimerQueue:boost::noncopyable
- {
- public:
- TimerQueue(EventLoop*loop);
- ~TimerQueue();
- 
- TimerId addTimer(const TimerCallback&cb,Timerstamp when,double interval);
- 
- private:
-  typedef std::pair<Timerstamp,Timer*> Entry;
-  typedef std::set<Entry>TimerList;
   
-  void handleRead();
-  std::vector<Entry>getExpired(Timestamp now);
-  void reset(const std::vector<Entry>& expired,Timestamp now);
+  class TimerQueue:boost::noncopyable
+  {
+  public:
+  TimerQueue(Eventloop* loop);
+  ~TimerQueue();
   
-  bool insert(Timer* timer);
+  TimerId addTimer(const TimerCallback& cb,Timerstamp when,double interval);
   
-  EventLoop* loop_;
-  const int timerfd_;
-  Channel timerfdChannel_;
-  TimerList timers_;
- };
+  private:
+    typedef std::pair<Timerstamp,Timer*> Entry;
+    typedef std::set<Entry> TimerList;
+    void handleRead();
+    
+    std::vector<Entry> getExpired(Timestamp now);
+    void reset(const std::vector<Entry>& expired,Timerstamp now);
+    
+    bool insert(Timer* timer);
+    
+    EventLoop* loop_;
+    const int timerfd;
+    Channel timerfdChannel_;
+    TimerList timers_;
+  };
+  
 }
+#endif
